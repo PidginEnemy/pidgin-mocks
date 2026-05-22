@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { Trash2 } from "lucide-react";
+import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
 import type { Endpoint } from "@/lib/types/endpoint";
 
@@ -9,6 +11,7 @@ type EndpointListItemProps = {
   active: boolean;
   href: string;
   onSelect: () => void;
+  onDeleteClick: () => void;
 };
 
 export function EndpointListItem({
@@ -16,30 +19,60 @@ export function EndpointListItem({
   active,
   href,
   onSelect,
+  onDeleteClick,
 }: EndpointListItemProps) {
   return (
-    <Link
-      href={href}
-      onClick={onSelect}
+    <div
       className={cn(
-        "flex w-full flex-col gap-0.5 rounded-md px-3 py-2 text-left text-sm transition-colors",
+        "group flex items-stretch rounded-md transition-colors",
         active
-          ? "bg-zinc-900 text-zinc-50 dark:bg-zinc-100 dark:text-zinc-900"
-          : "text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800",
+          ? "bg-zinc-900 dark:bg-zinc-100"
+          : "hover:bg-zinc-100 dark:hover:bg-zinc-800",
       )}
     >
-      <span className="flex items-center gap-2 font-medium">
-        <span className="tabular-nums">{endpoint.statusCode}</span>
-        <span className="truncate">{endpoint.path}</span>
-      </span>
-      <span
+      <Link
+        href={href}
+        onClick={onSelect}
         className={cn(
-          "text-xs uppercase tracking-wide",
-          active ? "text-zinc-300 dark:text-zinc-500" : "text-zinc-500",
+          "flex min-w-0 flex-1 flex-col gap-0.5 py-2 pl-3 pr-1 text-left text-sm",
+          active
+            ? "text-zinc-50 dark:text-zinc-900"
+            : "text-zinc-700 dark:text-zinc-300",
         )}
       >
-        {endpoint.method}
-      </span>
-    </Link>
+        <span className="flex items-center gap-2 font-medium">
+          <span className="tabular-nums">{endpoint.statusCode}</span>
+          <span className="truncate">{endpoint.path}</span>
+        </span>
+        <span
+          className={cn(
+            "text-xs uppercase tracking-wide",
+            active ? "text-zinc-300 dark:text-zinc-500" : "text-zinc-500",
+          )}
+        >
+          {endpoint.method}
+        </span>
+      </Link>
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon-sm"
+        aria-label={`Удалить ${endpoint.method} ${endpoint.path}`}
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          onDeleteClick();
+        }}
+        className={cn(
+          "mr-1.5 self-center opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100",
+          active && "opacity-100",
+          active
+            ? "text-zinc-300 hover:bg-zinc-800 hover:text-zinc-50 dark:text-zinc-500 dark:hover:bg-zinc-200 dark:hover:text-zinc-900"
+            : "text-zinc-500 hover:bg-zinc-200 hover:text-red-600 dark:hover:bg-zinc-700 dark:hover:text-red-400",
+        )}
+      >
+        <Trash2 className="h-4 w-4" />
+      </Button>
+    </div>
   );
 }

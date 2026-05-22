@@ -16,6 +16,12 @@ import {
 } from "@/components/ui/Select";
 import { DeleteEndpointDialog } from "@/components/admin/DeleteEndpointDialog";
 import { useEndpoints } from "@/components/admin/EndpointContext";
+import {
+  useCreateEndpointMutation,
+  useUpdateEndpointMutation,
+} from "@/hooks/endpoints";
+import { useDeleteEndpointAction } from "@/hooks/useDeleteEndpointAction";
+import { getErrorMessage } from "@/lib/api/errors";
 import { HTTP_METHODS, type Endpoint, type HttpMethod } from "@/lib/types/endpoint";
 
 type EndpointFormProps = {
@@ -27,16 +33,19 @@ const defaultBody = '{\n  "message": "Hello from mock"\n}';
 
 export function EndpointForm({ mode, endpoint }: EndpointFormProps) {
   const router = useRouter();
-  const { refreshEndpoints, selectEndpoint, setView } = useEndpoints();
+  const { refreshEndpoints, selectEndpoint } = useEndpoints();
+  const createMutation = useCreateEndpointMutation();
+  const updateMutation = useUpdateEndpointMutation();
+  const { deleteEndpoint, isDeleting } = useDeleteEndpointAction();
   const [method, setMethod] = useState<HttpMethod>("GET");
   const [path, setPath] = useState("/");
   const [statusCode, setStatusCode] = useState("200");
   const [responseBody, setResponseBody] = useState(defaultBody);
-  const [saving, setSaving] = useState(false);
-  const [deleting, setDeleting] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [jsonError, setJsonError] = useState<string | null>(null);
   const [origin, setOrigin] = useState("");
+
+  const saving = createMutation.isPending || updateMutation.isPending;
 
   useEffect(() => {
     setOrigin(window.location.origin);
@@ -73,79 +82,46 @@ export function EndpointForm({ mode, endpoint }: EndpointFormProps) {
   async function handleSave() {
     if (!validateJson(responseBody)) return;
 
-    setSaving(true);
+    const payload = {
+      method,
+      path,
+      statusCode: Number(statusCode),
+      responseBody,
+    };
+
     try {
-      const payload = {
-        method,
-        path,
-        statusCode: Number(statusCode),
-        responseBody,
-      };
-
-      const url =
-        mode === "create"
-          ? "/admin/api/endpoints"
-          : `/admin/api/endpoints/${endpoint?.id}`;
-      const response = await fetch(url, {
-        method: mode === "create" ? "POST" : "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.error ?? "Ошибка сохранения");
-      }
-
-      const updated = await refreshEndpoints();
-      toast.success(
-        mode === "create" ? "Endpoint создан" : "Endpoint обновлён",
-      );
-
       if (mode === "create") {
+        const data = await createMutation.mutateAsync(payload);
+        toast.success("Endpoint создан");
         selectEndpoint(data.id);
         router.replace(`/?endpoint=${data.id}`);
-      } else {
-        const current = updated.find((e) => e.id === endpoint?.id);
-        if (current) {
-          selectEndpoint(current.id);
-          router.replace(`/?endpoint=${current.id}`);
-        }
+        return;
+      }
+
+      if (!endpoint) return;
+
+      await updateMutation.mutateAsync({ id: endpoint.id, payload });
+      const updated = await refreshEndpoints();
+      toast.success("Endpoint обновлён");
+
+      const current = updated.find((e) => e.id === endpoint.id);
+      if (current) {
+        selectEndpoint(current.id);
+        router.replace(`/?endpoint=${current.id}`);
       }
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Ошибка сохранения");
-    } finally {
-      setSaving(false);
+      toast.error(getErrorMessage(error, "Ошибка сохранения"));
     }
   }
 
   async function handleDelete() {
     if (!endpoint) return;
-    setDeleting(true);
+
     try {
-      const response = await fetch(`/admin/api/endpoints/${endpoint.id}`, {
-        method: "DELETE",
-      });
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error ?? "Ошибка удаления");
-      }
-
-      const remaining = await refreshEndpoints();
+      await deleteEndpoint(endpoint.id);
       setDeleteOpen(false);
-      toast.success("Endpoint удалён");
-
-      if (remaining.length === 0) {
-        setView("empty");
-        router.replace("/");
-      } else {
-        selectEndpoint(remaining[0].id);
-        router.replace(`/?endpoint=${remaining[0].id}`);
-      }
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Ошибка удаления");
-    } finally {
-      setDeleting(false);
+    } catch {
+      // toast already shown in hook
     }
   }
 
@@ -225,7 +201,7 @@ export function EndpointForm({ mode, endpoint }: EndpointFormProps) {
               <Button
                 variant="destructive"
                 onClick={() => setDeleteOpen(true)}
-                disabled={deleting}
+                disabled={isDeleting}
               >
                 Удалить
               </Button>
@@ -234,7 +210,7 @@ export function EndpointForm({ mode, endpoint }: EndpointFormProps) {
                 open={deleteOpen}
                 onOpenChange={setDeleteOpen}
                 onConfirm={handleDelete}
-                deleting={deleting}
+                deleting={isDeleting}
               />
             </>
           )}

@@ -10,6 +10,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { useEndpointsQuery } from "@/hooks/endpoints";
 import type { Endpoint } from "@/lib/types/endpoint";
 
 export type WorkspaceView = "empty" | "create" | "edit";
@@ -29,21 +30,20 @@ type EndpointContextValue = {
 const EndpointContext = createContext<EndpointContextValue | null>(null);
 
 export function EndpointProvider({ children }: { children: ReactNode }) {
-  const [endpoints, setEndpoints] = useState<Endpoint[]>([]);
-  const [loading, setLoading] = useState(true);
+  const {
+    data: endpoints = [],
+    isLoading,
+    isError,
+    refetch,
+  } = useEndpointsQuery();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [view, setView] = useState<WorkspaceView>("empty");
-  const initialLoadDone = useRef(false);
+  const initialViewSet = useRef(false);
 
   const refreshEndpoints = useCallback(async () => {
-    const response = await fetch("/admin/api/endpoints");
-    if (!response.ok) {
-      throw new Error("Failed to load endpoints");
-    }
-    const data = (await response.json()) as Endpoint[];
-    setEndpoints(data);
-    return data;
-  }, []);
+    const result = await refetch();
+    return result.data ?? [];
+  }, [refetch]);
 
   const syncFromSearchParams = useCallback(
     (endpointId: string | null, mode: string | null) => {
@@ -72,22 +72,14 @@ export function EndpointProvider({ children }: { children: ReactNode }) {
   );
 
   useEffect(() => {
-    if (initialLoadDone.current) return;
-    initialLoadDone.current = true;
+    if (isLoading || initialViewSet.current) return;
+    initialViewSet.current = true;
 
-    refreshEndpoints()
-      .then((data) => {
-        if (data.length === 0) {
-          setView("empty");
-          setSelectedId(null);
-        }
-      })
-      .catch(() => {
-        setEndpoints([]);
-        setView("empty");
-      })
-      .finally(() => setLoading(false));
-  }, [refreshEndpoints]);
+    if (isError || endpoints.length === 0) {
+      setView("empty");
+      setSelectedId(null);
+    }
+  }, [isLoading, isError, endpoints.length]);
 
   const selectEndpoint = useCallback((id: string) => {
     setSelectedId(id);
@@ -102,7 +94,7 @@ export function EndpointProvider({ children }: { children: ReactNode }) {
   const value = useMemo(
     () => ({
       endpoints,
-      loading,
+      loading: isLoading,
       selectedId,
       view,
       refreshEndpoints,
@@ -113,7 +105,7 @@ export function EndpointProvider({ children }: { children: ReactNode }) {
     }),
     [
       endpoints,
-      loading,
+      isLoading,
       selectedId,
       view,
       refreshEndpoints,

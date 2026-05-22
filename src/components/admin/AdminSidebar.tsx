@@ -6,19 +6,41 @@ import { usePathname } from "next/navigation";
 import { Plus, Settings } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { ScrollArea } from "@/components/ui/ScrollArea";
+import { DeleteEndpointDialog } from "@/components/admin/DeleteEndpointDialog";
 import { EndpointListItem } from "@/components/admin/EndpointListItem";
 import { useEndpoints } from "@/components/admin/EndpointContext";
+import { useDeleteEndpointAction } from "@/hooks/useDeleteEndpointAction";
+import type { Endpoint } from "@/lib/types/endpoint";
 
 export function AdminSidebar() {
   const pathname = usePathname();
   const { endpoints, loading, selectedId, selectEndpoint, startCreate } =
     useEndpoints();
+  const { deleteEndpoint, isDeleting } = useDeleteEndpointAction();
   const isSettings = pathname === "/settings";
   const [mounted, setMounted] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Endpoint | null>(null);
+  const [deleteOpen, setDeleteOpen] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  function openDeleteDialog(endpoint: Endpoint) {
+    setDeleteTarget(endpoint);
+    setDeleteOpen(true);
+  }
+
+  async function handleConfirmDelete() {
+    if (!deleteTarget) return;
+    try {
+      await deleteEndpoint(deleteTarget.id);
+      setDeleteOpen(false);
+      setDeleteTarget(null);
+    } catch {
+      // toast already shown in hook
+    }
+  }
 
   return (
     <aside className="flex h-full w-[280px] shrink-0 flex-col border-r border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950">
@@ -71,11 +93,23 @@ export function AdminSidebar() {
                 href={`/?endpoint=${endpoint.id}`}
                 active={!isSettings && selectedId === endpoint.id}
                 onSelect={() => selectEndpoint(endpoint.id)}
+                onDeleteClick={() => openDeleteDialog(endpoint)}
               />
             ))}
           </div>
         )}
       </ScrollArea>
+
+      <DeleteEndpointDialog
+        endpoint={deleteTarget}
+        open={deleteOpen}
+        onOpenChange={(open) => {
+          setDeleteOpen(open);
+          if (!open) setDeleteTarget(null);
+        }}
+        onConfirm={handleConfirmDelete}
+        deleting={isDeleting}
+      />
     </aside>
   );
 }
