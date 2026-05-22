@@ -1,36 +1,72 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Pidgin Mocks
 
-## Getting Started
+Вспомогательное приложение для разработчиков: генерация mock API с админ-панелью.
 
-First, run the development server:
+## Возможности
+
+- Неограниченное количество mock endpoint'ов
+- Настройка HTTP-метода, пути, статус-кода и JSON-ответа
+- Админ-панель с sidebar и формой редактирования
+- Персистентное хранение в SQLite
+
+## Быстрый старт
 
 ```bash
+npm install
+npm run db:migrate
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Откройте [http://localhost:3000](http://localhost:3000) — админ-панель.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Использование mock API
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+После создания endpoint с путём `/users` и методом `GET`:
 
-## Learn More
+```bash
+curl http://localhost:3000/api/users
+```
 
-To learn more about Next.js, take a look at the following resources:
+Формат URL: `http://localhost:3000/api{path}`
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Примеры:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+| Path в админке | Метод | URL |
+|----------------|-------|-----|
+| `/users` | GET | `GET /api/users` |
+| `/v1/orders` | POST | `POST /api/v1/orders` |
 
-## Deploy on Vercel
+Если endpoint не настроен, API вернёт `404`:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```json
+{ "error": "Mock endpoint not configured" }
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Скрипты
+
+| Команда | Описание |
+|---------|----------|
+| `npm run dev` | Dev-сервер |
+| `npm run build` | Production-сборка |
+| `npm run start` | Запуск production |
+| `npm run db:generate` | Сгенерировать миграцию из схемы |
+| `npm run db:migrate` | Применить миграции |
+| `npm run db:push` | Синхронизировать схему с БД (без миграций) |
+
+База данных: `data/mocks.db` (создаётся автоматически).
+
+## Структура маршрутов
+
+| Маршрут | Назначение |
+|---------|------------|
+| `/` | Админ-панель |
+| `/settings` | Общие настройки (заглушка) |
+| `/api/*` | Mock API |
+| `/admin/api/endpoints` | CRUD API для UI |
+
+## Стек
+
+- Next.js (App Router)
+- SQLite + Drizzle ORM
+- Tailwind CSS + shadcn/ui-подобные компоненты
+- Zod

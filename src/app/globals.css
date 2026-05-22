@@ -22,5 +22,81 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+}
+
+/* JSON response editor (react-simple-code-editor + Prism) */
+.json-response-editor {
+  position: relative;
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: 14px;
+  line-height: 1.5;
+  letter-spacing: 0;
+  tab-size: 2;
+}
+
+/* Одинаковая типографика для слоя подсветки и textarea — иначе каретка съезжает */
+.json-response-editor pre,
+.json-response-editor pre code,
+.json-response-editor textarea,
+.json-response-editor .npm__react-simple-code-editor__textarea {
+  margin: 0;
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  letter-spacing: inherit;
+  tab-size: inherit;
+  font-variant-ligatures: none;
+  white-space: pre-wrap;
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
+
+.json-response-editor pre {
+  background: transparent !important;
+  pointer-events: none;
+}
+
+/* Базовый цвет для всего текста в слое подсветки (в т.ч. :, {}, []) */
+.json-response-editor pre,
+.json-response-editor pre code {
+  color: #e4e4e7;
+}
+
+.json-response-editor textarea,
+.json-response-editor .npm__react-simple-code-editor__textarea {
+  caret-color: #fafafa;
+  color: transparent !important;
+  -webkit-text-fill-color: transparent;
+  outline: none;
+  background: transparent;
+}
+
+.json-response-editor .token {
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  letter-spacing: inherit;
+}
+
+.json-response-editor .token.property {
+  color: #7dd3fc;
+}
+
+.json-response-editor .token.string {
+  color: #86efac;
+}
+
+.json-response-editor .token.number {
+  color: #fcd34d;
+}
+
+.json-response-editor .token.boolean,
+.json-response-editor .token.null {
+  color: #c4b5fd;
+}
+
+.json-response-editor .token.punctuation,
+.json-response-editor .token.operator {
+  color: #d4d4d8;
 }
