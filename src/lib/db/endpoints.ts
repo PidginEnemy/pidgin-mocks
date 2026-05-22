@@ -1,4 +1,8 @@
-import { and, asc, eq } from "drizzle-orm";
+import { asc, eq } from "drizzle-orm";
+import {
+  pathMatchesPattern,
+  patternSpecificity,
+} from "@/lib/path-pattern";
 import { db } from "./index";
 import { endpoints } from "./schema";
 import type { Endpoint, HttpMethod } from "@/lib/types/endpoint";
@@ -36,8 +40,16 @@ export async function getEndpointByPathAndMethod(
   const rows = await db
     .select()
     .from(endpoints)
-    .where(and(eq(endpoints.path, path), eq(endpoints.method, method)));
-  return rows[0] ? rowToEndpoint(rows[0]) : null;
+    .where(eq(endpoints.method, method));
+
+  const matches = rows
+    .map(rowToEndpoint)
+    .filter((endpoint) => pathMatchesPattern(path, endpoint.path))
+    .sort(
+      (a, b) => patternSpecificity(b.path) - patternSpecificity(a.path),
+    );
+
+  return matches[0] ?? null;
 }
 
 export async function createEndpoint(input: EndpointInput): Promise<Endpoint> {

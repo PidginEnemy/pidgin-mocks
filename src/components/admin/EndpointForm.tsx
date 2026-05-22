@@ -29,7 +29,7 @@ type EndpointFormProps = {
   endpoint?: Endpoint;
 };
 
-const defaultBody = '{\n  "message": "Hello from mock"\n}';
+const defaultBody = '{\n  \n}';
 
 export function EndpointForm({ mode, endpoint }: EndpointFormProps) {
   const router = useRouter();
@@ -177,8 +177,24 @@ export function EndpointForm({ mode, endpoint }: EndpointFormProps) {
             id="path"
             value={path}
             onChange={(e) => setPath(e.target.value)}
-            placeholder="/users"
+            placeholder="/api/users/{id}"
           />
+          <p className="text-xs text-zinc-500">
+            Сегмент в фигурных скобках — динамический параметр: любая непустая
+            строка вместо{" "}
+            <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-800">
+              {"{id}"}
+            </code>
+            . Пример:{" "}
+            <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-800">
+              /api/users/42
+            </code>{" "}
+            для шаблона{" "}
+            <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-800">
+              /api/users/{"{id}"}
+            </code>
+            .
+          </p>
         </div>
 
         <JsonResponseEditor

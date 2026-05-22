@@ -14,6 +14,38 @@ type EndpointListItemProps = {
   onDeleteClick: () => void;
 };
 
+function statusCodeColorClass(code: number, active: boolean): string {
+  const range = Math.floor(code / 100);
+
+  if (active) {
+    switch (range) {
+      case 2:
+        return "text-emerald-400 dark:text-emerald-600";
+      case 3:
+        return "text-amber-400 dark:text-amber-600";
+      case 4:
+        return "text-orange-400 dark:text-orange-600";
+      case 5:
+        return "text-red-400 dark:text-red-600";
+      default:
+        return "text-zinc-300 dark:text-zinc-500";
+    }
+  }
+
+  switch (range) {
+    case 2:
+      return "text-emerald-600 dark:text-emerald-400";
+    case 3:
+      return "text-amber-600 dark:text-amber-400";
+    case 4:
+      return "text-orange-600 dark:text-orange-400";
+    case 5:
+      return "text-red-600 dark:text-red-400";
+    default:
+      return "text-zinc-500";
+  }
+}
+
 export function EndpointListItem({
   endpoint,
   active,
@@ -41,7 +73,14 @@ export function EndpointListItem({
         )}
       >
         <span className="flex items-center gap-2 font-medium">
-          <span className="tabular-nums">{endpoint.statusCode}</span>
+          <span
+            className={cn(
+              "tabular-nums",
+              statusCodeColorClass(endpoint.statusCode, active),
+            )}
+          >
+            {endpoint.statusCode}
+          </span>
           <span className="truncate">{endpoint.path}</span>
         </span>
         <span

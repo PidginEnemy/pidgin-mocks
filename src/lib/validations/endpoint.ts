@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isValidEndpointPath } from "@/lib/path-pattern";
 import { HTTP_METHODS } from "@/lib/types/endpoint";
 
 function isValidJson(value: string): boolean {
@@ -16,7 +17,11 @@ export const endpointInputSchema = z.object({
     .trim()
     .min(1, "Path is required")
     .refine((p) => p.startsWith("/"), "Path must start with /")
-    .refine((p) => !/\s/.test(p), "Path must not contain spaces"),
+    .refine((p) => !/\s/.test(p), "Path must not contain spaces")
+    .refine(
+      isValidEndpointPath,
+      'Use {name} for dynamic segments, e.g. /api/users/{id}',
+    ),
   method: z.enum(HTTP_METHODS),
   statusCode: z
     .number()
