@@ -19,6 +19,7 @@ export function EndpointUrlSync() {
     syncFromSearchParams(
       searchParams.get("endpoint"),
       searchParams.get("mode"),
+      searchParams.get("collection"),
     );
   }, [loading, searchParams, syncFromSearchParams]);
 

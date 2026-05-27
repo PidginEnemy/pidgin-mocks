@@ -1,4 +1,8 @@
 export const queryKeys = {
+  collections: {
+    all: ["collections"] as const,
+    list: () => [...queryKeys.collections.all, "list"] as const,
+  },
   endpoints: {
     all: ["endpoints"] as const,
     list: () => [...queryKeys.endpoints.all, "list"] as const,

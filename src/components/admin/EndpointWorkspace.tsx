@@ -6,7 +6,14 @@ import { EndpointForm } from "@/components/admin/EndpointForm";
 import { useEndpoints } from "@/components/admin/EndpointContext";
 
 export function EndpointWorkspace() {
-  const { endpoints, loading, selectedId, view } = useEndpoints();
+  const {
+    collections,
+    endpoints,
+    loading,
+    selectedId,
+    createCollectionId,
+    view,
+  } = useEndpoints();
 
   const selectedEndpoint = useMemo(
     () => endpoints.find((e) => e.id === selectedId) ?? null,
@@ -21,17 +28,26 @@ export function EndpointWorkspace() {
     );
   }
 
-  if (view === "empty" || (endpoints.length === 0 && view !== "create")) {
-    return <EndpointEmptyState />;
+  if (collections.length === 0) {
+    return <EndpointEmptyState variant="no-collections" />;
   }
 
   if (view === "create") {
-    return <EndpointForm mode="create" />;
+    return (
+      <EndpointForm
+        mode="create"
+        defaultCollectionId={createCollectionId ?? collections[0]?.id}
+      />
+    );
+  }
+
+  if (view === "empty" || endpoints.length === 0) {
+    return <EndpointEmptyState variant="no-endpoints" />;
   }
 
   if (view === "edit" && selectedEndpoint) {
     return <EndpointForm mode="edit" endpoint={selectedEndpoint} />;
   }
 
-  return <EndpointEmptyState />;
+  return <EndpointEmptyState variant="no-endpoints" />;
 }

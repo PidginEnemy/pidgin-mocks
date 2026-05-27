@@ -4,9 +4,9 @@
 
 ## Возможности
 
-- Неограниченное количество mock endpoint'ов
+- Коллекции mock endpoint'ов с группировкой в sidebar
 - Настройка HTTP-метода, пути, статус-кода и JSON-ответа
-- Админ-панель с sidebar и формой редактирования
+- Админ-панель с аккордеоном коллекций и формой редактирования
 - Персистентное хранение в SQLite
 
 ## Быстрый старт
@@ -19,22 +19,28 @@ npm run dev
 
 Откройте [http://localhost:3000](http://localhost:3000) — админ-панель.
 
+## Управление коллекциями в админке
+
+- Создание: кнопка «Новая коллекция»
+- Переименование: иконка карандаша у коллекции в sidebar (slug в URL `/api/{slug}/...` пересчитывается из имени автоматически)
+- Удаление: иконка корзины у коллекции; все её mock endpoint&apos;ы удаляются каскадно. Коллекцию **Common** удалить нельзя (ответ API `403`).
+
 ## Использование mock API
 
-После создания endpoint с путём `/users` и методом `GET`:
+После создания коллекции `Common` и endpoint с путём `/users` и методом `GET`:
 
 ```bash
-curl http://localhost:3000/api/users
+curl http://localhost:3000/api/common/users
 ```
 
-Формат URL: `http://localhost:3000/api{path}`
+Формат URL: `http://localhost:3000/api/{collection}{path}`
 
 Примеры:
 
-| Path в админке | Метод | URL |
-|----------------|-------|-----|
-| `/users` | GET | `GET /api/users` |
-| `/v1/orders` | POST | `POST /api/v1/orders` |
+| Коллекция (slug) | Path в админке | Метод | URL |
+|------------------|----------------|-------|-----|
+| `common` | `/users` | GET | `GET /api/common/users` |
+| `common` | `/v1/orders` | POST | `POST /api/common/v1/orders` |
 
 Если endpoint не настроен, API вернёт `404`:
 
@@ -60,9 +66,11 @@ curl http://localhost:3000/api/users
 | Маршрут | Назначение |
 |---------|------------|
 | `/` | Админ-панель |
-| `/settings` | Общие настройки (заглушка) |
-| `/api/*` | Mock API |
-| `/admin/api/endpoints` | CRUD API для UI |
+| `/settings` | Общие настройки |
+| `/api/{collection}/*` | Mock API |
+| `/admin/api/collections` | Список и создание коллекций для UI |
+| `/admin/api/collections/[id]` | Обновление и удаление коллекции |
+| `/admin/api/endpoints` | CRUD endpoint'ов для UI |
 
 ## Стек
 

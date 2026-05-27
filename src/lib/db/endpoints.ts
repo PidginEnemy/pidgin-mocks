@@ -1,46 +1,65 @@
-import { asc, eq } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 import {
   pathMatchesPattern,
   patternSpecificity,
 } from "@/lib/path-pattern";
 import { db } from "./index";
-import { endpoints } from "./schema";
+import { collections, endpoints } from "./schema";
 import type { Endpoint, HttpMethod } from "@/lib/types/endpoint";
 import type { EndpointInput } from "@/lib/validations/endpoint";
 
-function rowToEndpoint(row: typeof endpoints.$inferSelect): Endpoint {
+type EndpointRow = {
+  endpoint: typeof endpoints.$inferSelect;
+  collection: typeof collections.$inferSelect;
+};
+
+function rowToEndpoint(row: EndpointRow): Endpoint {
   return {
-    id: row.id,
-    path: row.path,
-    method: row.method as HttpMethod,
-    statusCode: row.statusCode,
-    responseBody: row.responseBody,
-    createdAt: row.createdAt,
-    updatedAt: row.updatedAt,
+    id: row.endpoint.id,
+    collectionId: row.endpoint.collectionId,
+    collectionSlug: row.collection.slug,
+    collectionName: row.collection.name,
+    path: row.endpoint.path,
+    method: row.endpoint.method as HttpMethod,
+    statusCode: row.endpoint.statusCode,
+    responseBody: row.endpoint.responseBody,
+    createdAt: row.endpoint.createdAt,
+    updatedAt: row.endpoint.updatedAt,
   };
 }
 
-export async function listEndpoints(): Promise<Endpoint[]> {
-  const rows = await db
-    .select()
+function endpointSelect() {
+  return db
+    .select({
+      endpoint: endpoints,
+      collection: collections,
+    })
     .from(endpoints)
-    .orderBy(asc(endpoints.path), asc(endpoints.method));
+    .innerJoin(collections, eq(endpoints.collectionId, collections.id));
+}
+
+export async function listEndpoints(): Promise<Endpoint[]> {
+  const rows = await endpointSelect().orderBy(
+    asc(collections.name),
+    asc(endpoints.path),
+    asc(endpoints.method),
+  );
   return rows.map(rowToEndpoint);
 }
 
 export async function getEndpointById(id: string): Promise<Endpoint | null> {
-  const rows = await db.select().from(endpoints).where(eq(endpoints.id, id));
+  const rows = await endpointSelect().where(eq(endpoints.id, id));
   return rows[0] ? rowToEndpoint(rows[0]) : null;
 }
 
-export async function getEndpointByPathAndMethod(
+export async function getEndpointByCollectionPathAndMethod(
+  collectionSlug: string,
   path: string,
   method: string,
 ): Promise<Endpoint | null> {
-  const rows = await db
-    .select()
-    .from(endpoints)
-    .where(eq(endpoints.method, method));
+  const rows = await endpointSelect().where(
+    and(eq(collections.slug, collectionSlug), eq(endpoints.method, method)),
+  );
 
   const matches = rows
     .map(rowToEndpoint)
@@ -59,6 +78,7 @@ export async function createEndpoint(input: EndpointInput): Promise<Endpoint> {
 
   await db.insert(endpoints).values({
     id,
+    collectionId: input.collectionId,
     path: input.path,
     method: input.method,
     statusCode: input.statusCode,
@@ -86,6 +106,7 @@ export async function updateEndpoint(
   await db
     .update(endpoints)
     .set({
+      collectionId: input.collectionId,
       path: input.path,
       method: input.method,
       statusCode: input.statusCode,

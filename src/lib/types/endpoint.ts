@@ -12,6 +12,9 @@ export type HttpMethod = (typeof HTTP_METHODS)[number];
 
 export type Endpoint = {
   id: string;
+  collectionId: string;
+  collectionSlug: string;
+  collectionName: string;
   path: string;
   method: HttpMethod;
   statusCode: number;

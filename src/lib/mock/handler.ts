@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getEndpointByPathAndMethod } from "@/lib/db/endpoints";
+import { getEndpointByCollectionPathAndMethod } from "@/lib/db/endpoints";
 
 function buildPath(segments: string[] | undefined): string {
   if (!segments || segments.length === 0) return "/";
@@ -14,13 +14,18 @@ const corsHeaders = {
 
 export async function handleMockRequest(
   request: NextRequest,
-  segments: string[] | undefined,
+  collectionSlug: string,
+  pathSegments: string[] | undefined,
 ): Promise<NextResponse> {
-  const path = buildPath(segments);
+  const path = buildPath(pathSegments);
   const method = request.method;
 
   if (method === "OPTIONS") {
-    const record = await getEndpointByPathAndMethod(path, "OPTIONS");
+    const record = await getEndpointByCollectionPathAndMethod(
+      collectionSlug,
+      path,
+      "OPTIONS",
+    );
     if (!record) {
       return new NextResponse(null, { status: 204, headers: corsHeaders });
     }
@@ -30,7 +35,11 @@ export async function handleMockRequest(
     });
   }
 
-  const record = await getEndpointByPathAndMethod(path, method);
+  const record = await getEndpointByCollectionPathAndMethod(
+    collectionSlug,
+    path,
+    method,
+  );
   if (!record) {
     return NextResponse.json(
       { error: "Mock endpoint not configured" },

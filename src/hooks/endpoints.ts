@@ -7,6 +7,7 @@ import { useApiMutation } from "@/hooks/useApiMutation";
 import { useApiQuery } from "@/hooks/useApiQuery";
 
 export type EndpointPayload = {
+  collectionId: string;
   method: HttpMethod;
   path: string;
   statusCode: number;
@@ -28,7 +29,7 @@ export function useCreateEndpointMutation() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       }),
-    invalidateKeys: [queryKeys.endpoints.list()],
+    invalidateKeys: [queryKeys.endpoints.list(), queryKeys.collections.list()],
   });
 }
 
@@ -40,7 +41,7 @@ export function useUpdateEndpointMutation() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       }),
-    invalidateKeys: [queryKeys.endpoints.list()],
+    invalidateKeys: [queryKeys.endpoints.list(), queryKeys.collections.list()],
   });
 }
 

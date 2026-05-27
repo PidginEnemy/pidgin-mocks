@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/Button";
@@ -27,46 +27,64 @@ import { HTTP_METHODS, type Endpoint, type HttpMethod } from "@/lib/types/endpoi
 type EndpointFormProps = {
   mode: "create" | "edit";
   endpoint?: Endpoint;
+  defaultCollectionId?: string;
 };
 
 const defaultBody = '{\n  \n}';
 
-export function EndpointForm({ mode, endpoint }: EndpointFormProps) {
+function buildMockUrl(origin: string, collectionSlug: string, path: string) {
+  const suffix = path === "/" ? "" : path;
+  const base = origin
+    ? `${origin}/api/${collectionSlug}${suffix}`
+    : `/api/${collectionSlug}${suffix}`;
+  return base;
+}
+
+function EndpointFormFields({
+  mode,
+  endpoint,
+  defaultCollectionId,
+}: EndpointFormProps) {
   const router = useRouter();
-  const { refreshEndpoints, selectEndpoint } = useEndpoints();
+  const { collections, refreshEndpoints, selectEndpoint } = useEndpoints();
   const createMutation = useCreateEndpointMutation();
   const updateMutation = useUpdateEndpointMutation();
   const { deleteEndpoint, isDeleting } = useDeleteEndpointAction();
-  const [method, setMethod] = useState<HttpMethod>("GET");
-  const [path, setPath] = useState("/");
-  const [statusCode, setStatusCode] = useState("200");
-  const [responseBody, setResponseBody] = useState(defaultBody);
+  const initialCollectionId =
+    mode === "edit" && endpoint
+      ? endpoint.collectionId
+      : defaultCollectionId ?? collections[0]?.id ?? "";
+
+  const initialMethod: HttpMethod =
+    mode === "edit" && endpoint ? endpoint.method : "GET";
+
+  const initialPath = mode === "edit" && endpoint ? endpoint.path : "/";
+
+  const initialStatusCode =
+    mode === "edit" && endpoint ? String(endpoint.statusCode) : "200";
+
+  const initialResponseBody =
+    mode === "edit" && endpoint
+      ? JSON.stringify(JSON.parse(endpoint.responseBody), null, 2)
+      : defaultBody;
+
+  const [collectionId, setCollectionId] = useState(initialCollectionId);
+  const [method, setMethod] = useState<HttpMethod>(initialMethod);
+  const [path, setPath] = useState(initialPath);
+  const [statusCode, setStatusCode] = useState(initialStatusCode);
+  const [responseBody, setResponseBody] = useState(initialResponseBody);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [jsonError, setJsonError] = useState<string | null>(null);
-  const [origin, setOrigin] = useState("");
+  const [origin] = useState(() =>
+    typeof window === "undefined" ? "" : window.location.origin,
+  );
+
+  const selectedCollection = useMemo(
+    () => collections.find((c) => c.id === collectionId) ?? null,
+    [collections, collectionId],
+  );
 
   const saving = createMutation.isPending || updateMutation.isPending;
-
-  useEffect(() => {
-    setOrigin(window.location.origin);
-  }, []);
-
-  useEffect(() => {
-    if (mode === "edit" && endpoint) {
-      setMethod(endpoint.method);
-      setPath(endpoint.path);
-      setStatusCode(String(endpoint.statusCode));
-      setResponseBody(
-        JSON.stringify(JSON.parse(endpoint.responseBody), null, 2),
-      );
-    } else if (mode === "create") {
-      setMethod("GET");
-      setPath("/");
-      setStatusCode("200");
-      setResponseBody(defaultBody);
-    }
-    setJsonError(null);
-  }, [mode, endpoint]);
 
   function validateJson(value: string): boolean {
     try {
@@ -80,9 +98,14 @@ export function EndpointForm({ mode, endpoint }: EndpointFormProps) {
   }
 
   async function handleSave() {
+    if (!collectionId) {
+      toast.error("Выберите коллекцию");
+      return;
+    }
     if (!validateJson(responseBody)) return;
 
     const payload = {
+      collectionId,
       method,
       path,
       statusCode: Number(statusCode),
@@ -125,6 +148,10 @@ export function EndpointForm({ mode, endpoint }: EndpointFormProps) {
     }
   }
 
+  const previewUrl = selectedCollection
+    ? buildMockUrl(origin, selectedCollection.slug, path)
+    : "";
+
   return (
     <div className="flex flex-1 flex-col overflow-auto p-8">
       <div className="mx-auto w-full max-w-2xl space-y-6">
@@ -135,11 +162,25 @@ export function EndpointForm({ mode, endpoint }: EndpointFormProps) {
           <p className="mt-1 text-sm text-zinc-500">
             Итоговый URL:{" "}
             <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-800">
-              {origin
-                ? `${origin}/api${path === "/" ? "" : path}`
-                : `/api${path === "/" ? "" : path}`}
+              {previewUrl || "…"}
             </code>
           </p>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="collection">Коллекция</Label>
+          <Select value={collectionId} onValueChange={setCollectionId}>
+            <SelectTrigger id="collection">
+              <SelectValue placeholder="Выберите коллекцию" />
+            </SelectTrigger>
+            <SelectContent>
+              {collections.map((collection) => (
+                <SelectItem key={collection.id} value={collection.id}>
+                  {collection.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
@@ -177,21 +218,24 @@ export function EndpointForm({ mode, endpoint }: EndpointFormProps) {
             id="path"
             value={path}
             onChange={(e) => setPath(e.target.value)}
-            placeholder="/api/users/{id}"
+            placeholder="/users/{id}"
           />
           <p className="text-xs text-zinc-500">
-            Сегмент в фигурных скобках — динамический параметр: любая непустая
-            строка вместо{" "}
+            Путь внутри коллекции, без префикса{" "}
             <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-800">
-              {"{id}"}
+              /api/{"{collection}"}
             </code>
-            . Пример:{" "}
+            . Сегмент в фигурных скобках — динамический параметр. Пример:{" "}
             <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-800">
-              /api/users/42
+              /api/common/users/42
             </code>{" "}
-            для шаблона{" "}
+            для коллекции{" "}
             <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-800">
-              /api/users/{"{id}"}
+              common
+            </code>{" "}
+            и шаблона{" "}
+            <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-800">
+              /users/{"{id}"}
             </code>
             .
           </p>
@@ -234,4 +278,12 @@ export function EndpointForm({ mode, endpoint }: EndpointFormProps) {
       </div>
     </div>
   );
+}
+
+export function EndpointForm(props: EndpointFormProps) {
+  const key = `${props.mode}:${props.endpoint?.id ?? "new"}:${
+    props.defaultCollectionId ?? ""
+  }`;
+
+  return <EndpointFormFields key={key} {...props} />;
 }

@@ -1,0 +1,3 @@
+export const COMMON_COLLECTION_ID = "a0000000-0000-4000-8000-000000000001";
+export const COMMON_COLLECTION_NAME = "Common";
+export const COMMON_COLLECTION_SLUG = "common";

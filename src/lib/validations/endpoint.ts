@@ -12,6 +12,7 @@ function isValidJson(value: string): boolean {
 }
 
 export const endpointInputSchema = z.object({
+  collectionId: z.string().uuid("Collection is required"),
   path: z
     .string()
     .trim()
@@ -20,7 +21,7 @@ export const endpointInputSchema = z.object({
     .refine((p) => !/\s/.test(p), "Path must not contain spaces")
     .refine(
       isValidEndpointPath,
-      'Use {name} for dynamic segments, e.g. /api/users/{id}',
+      "Use {name} for dynamic segments, e.g. /users/{id}",
     ),
   method: z.enum(HTTP_METHODS),
   statusCode: z
